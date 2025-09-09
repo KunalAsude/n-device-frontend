@@ -33,7 +33,7 @@ export function DeviceConflictModal({ devices, onForceLogin, onCancel }: DeviceC
           </div>
           <CardTitle className="text-xl text-foreground">Device Limit Reached</CardTitle>
           <CardDescription className="text-center">
-            You've reached the maximum number of devices (3). Please select a device to sign out or cancel to stay
+            You&apos;ve reached the maximum number of devices (3). Please select a device to sign out or cancel to stay
             signed out on this device.
           </CardDescription>
         </CardHeader>

@@ -47,8 +47,12 @@ function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      fetchUserData()
-      checkDeviceStatus()
+      const initializeData = async () => {
+        await fetchUserData()
+        await checkDeviceStatus()
+      }
+      
+      initializeData()
 
       const wasLoggedOut = localStorage.getItem("forcedLogout")
       if (wasLoggedOut) {
@@ -68,7 +72,7 @@ function Dashboard() {
         email: data.email || "",
         phone: data.phone || ""
       })
-    } catch (error) {
+    } catch {
       // Handle error silently
     }
   }
@@ -83,7 +87,7 @@ function Dashboard() {
       await fetchUserData()
       await fetchActiveDevices()
 
-    } catch (error) {
+    } catch {
       // Handle error silently
     } finally {
       setLoading(false)
@@ -111,7 +115,7 @@ function Dashboard() {
       const result = response.data
 
       if (result.status === "limit_reached") {
-        setConflictDevices(result.active_sessions.map((s: any) => ({
+        setConflictDevices(result.active_sessions.map((s: { device_id: string; device_name?: string; created_at?: string }) => ({
           device_id: s.device_id,
           device_name: s.device_name || "Unknown Device",
           last_active: s.created_at || new Date().toISOString(),
@@ -136,7 +140,7 @@ function Dashboard() {
       const data = response.data
       
       const currentDeviceId = getDeviceId()
-      const transformedDevices = (data.devices || []).map((device: any) => ({
+      const transformedDevices = (data.devices || []).map((device: { device_id: string; device_name?: string; last_active?: string; created_at?: string }) => ({
         device_id: device.device_id,
         device_name: device.device_name || "Unknown Device",
         last_active: device.last_active || device.created_at || new Date().toISOString(),
@@ -148,10 +152,12 @@ function Dashboard() {
       const currentDeviceInList = transformedDevices.some((device: Device) => device.is_current)
       setCurrentDeviceLoggedIn(currentDeviceInList)
       
-    } catch (error: any) {
-      console.error("Failed to fetch devices:", error)
-      if (error.response?.status === 404) {
-        setCurrentDeviceLoggedIn(false)
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } }
+        if (axiosError.response?.status === 404) {
+          setCurrentDeviceLoggedIn(false)
+        }
       }
     }
   }
@@ -181,7 +187,6 @@ function Dashboard() {
 
   const handleLogoutAllOtherDevices = async () => {
     try {
-      const currentDeviceId = getDeviceId()
       const otherDevices = devices.filter(device => !device.is_current)
       
       // Logout all other devices
@@ -190,8 +195,8 @@ function Dashboard() {
       )
       
       fetchActiveDevices()
-    } catch (error) {
-      console.error("Failed to logout other devices:", error)
+    } catch {
+      // Handle error silently
     }
   }
 
@@ -232,7 +237,7 @@ function Dashboard() {
       setProfileUpdateLoading(true)
       
       // Only send fields that have been changed
-      const updateData: any = {}
+      const updateData: Partial<Pick<UserData, 'full_name' | 'email' | 'phone'>> = {}
       
       if (editedUserData.full_name !== (userData?.full_name || "")) {
         updateData.full_name = editedUserData.full_name
